@@ -1,0 +1,31 @@
+# 编译产物
+*.o
+*.crf
+*.d
+*.lst
+*.axf
+*.hex
+*.bin
+*.map
+*.lnp
+*.plg
+*.tra
+*.htm
+*.build_log.htm
+*.sct
+*_sct.Bak
+*.dep
+*.__i
+*.Bak
+*.bak
+
+# 用户IDE配置
+*.uvgui.*
+*.uvguix.*
+*.uvopt
+*.uvoptx
+*.uvproj.saved_uv4
+*.dbgconf
+
+# 备份
+*.bak

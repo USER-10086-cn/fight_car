@@ -1,0 +1,3 @@
+..\src\fsm.h,
+..\src\queue.h 
+TO ..\List\UP_ADC.c RTE NOPRINT
