@@ -1,5 +1,7 @@
 #include "fighting.h"
 #include "UP_Globle.h"
+#include "UP_Bluetooth.h"
+#include "UP_LCD.h"
 
 #define TIMEOUT(start, ms)  ((g_SysTickTimer - (start)) >= (ms))
 
@@ -10,6 +12,32 @@
 #define enemy 400  //敌人在范围内的最小值（80cm）
 #define wuti 800   //敌人在范围内的最小值 （150cm）
 #define edge 1500    //光电到边沿阈值
+static uint8_t jianyi_flag=0;
+
+void Bluetooth_Rx_CallBack(u32 dat)//接收树莓派返回结果
+{
+    UP_LCD_ClearScreen();
+    UP_LCD_ShowInt(0,2,g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD]);
+    UP_LCD_ShowHex(1,1,dat);
+	if(dat=='0x01')
+	{
+		jianyi_flag=1;
+	}
+}
+
+
+uint8_t is_jianyi(void)
+{
+	uint8_t ret = 0;
+    UP_Bluetooth_Putc('a');  //先发a告诉树莓派开始，阻塞等待100ms取结果
+    UP_delay_ms(100);  //阻塞等待100ms取结果，注意：时间控制不好容易晚复位jianyi_flag
+    ret=jianyi_flag;
+    jianyi_flag=0;
+    return ret;
+}
+
+
+
 
 //判断是否挂住函数，是则返回1，否则返回0
 uint8_t is_hangon(void)
@@ -37,6 +65,14 @@ uint8_t is_edge(void)
          //|| g_Fight_GuangdianFiltered[FIGHT_GUANGDIAN_BACKWARD1] > edge
          //|| g_Fight_GuangdianFiltered[FIGHT_GUANGDIAN_BACKWARD2] > edge);
 }
+
+//判断是否到后沿函数
+uint8_t is_edge_behind(void)
+{
+    return (g_Fight_GuangdianFiltered[FIGHT_GUANGDIAN_BACKWARD1]  > edge
+         || g_Fight_GuangdianFiltered[FIGHT_GUANGDIAN_BACKWARD2]  > edge);
+}
+
 //判断在台下是否对准擂台函数
 uint8_t is_to_leitai(void)
 {

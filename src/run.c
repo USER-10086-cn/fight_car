@@ -210,6 +210,8 @@ uint8_t tuitai_step(uint8_t is_exti) {
     static uint8_t finish_flag = 0; //退台完成标志位，返回值
     static uint8_t step = 0; //步进计数
     static uint32_t t_start; //开始时间
+    static uint32_t temp_time=0; //临时时间变量
+
 
     switch (step) {
     case 0:
@@ -220,6 +222,15 @@ uint8_t tuitai_step(uint8_t is_exti) {
         break;
 
     case 1:
+        if (is_edge_behind()) {            //退台退到后沿
+            motor_set_duty(50, 50);       // 到达后沿前进
+            temp_time = (g_SysTickTimer-t_start)/2;  //计算应该前进时间
+            t_start=g_SysTickTimer;       // 更新开始时间
+            step =3;                   // 复位，可循环或停止
+           
+        }
+
+         
         if (TIMEOUT(t_start, 1000)) {
             motor_set_duty(50, -50);    // 2000ms后右转
             t_start = g_SysTickTimer;
@@ -237,7 +248,21 @@ uint8_t tuitai_step(uint8_t is_exti) {
             step = 0;                   // 复位，可循环或停止
             finish_flag=1;              // 设置退台完成标志位
         }
-        break;    
+        break;
+        
+
+    case 3:
+        if (TIMEOUT(t_start, temp_time)) {
+            motor_set_duty(50, -50);       // 旋转
+            t_start = g_SysTickTimer;
+            step = 2;                   //这之后和step=2同处理
+          
+        }
+        break;
+
+    
+        
+        
 
     }
     if (is_exti) step = 0;
@@ -260,6 +285,11 @@ uint8_t tuitai_step(uint8_t is_exti) {
 
 @date date7 18：00
 */
+
+static uint8_t last_miaozhun_ok=0;  //用于捕捉前面从无到有的标志位
+
+
+
 uint8_t miaozhun_step(uint8_t is_exti) {
    
     uint8_t temp=0;
@@ -268,6 +298,7 @@ uint8_t miaozhun_step(uint8_t is_exti) {
     int16_t k=0;
 
     temp=which_to_enemy();  //得到哪个方向对着最近目标
+
     switch(temp)
     {
 			case 1:          //正对的话，不给旋转速度（k=0），瞄准ok标志位置位
@@ -396,22 +427,23 @@ uint8_t taixia_deal(void)
 }
 
 
-
+static uint8_t jianyi_tuitai=0;
 
 uint8_t xunluo_deal(void)
 {
 	static uint8_t temp_flag=0;  //检测到边沿置位
     uint8_t ret=2;
-    if(is_edge())
+    if(is_edge() || jianyi_tuitai) //减益方块也到这里处理
     {
         temp_flag=1;
     }
 
-    if(temp_flag==1)                //到边沿执行退台
+    if(temp_flag==1 )                //到边沿执行退台
     {
         if(tuitai_step(0))
         {
             temp_flag=0;
+            jianyi_tuitai=0; //减益方块处理完复位
         }
     }
     else motor_set_duty(50,50);     //否则继续巡逻
@@ -422,9 +454,13 @@ uint8_t xunluo_deal(void)
     if(ret==3 && temp_flag==1) ret=2;  //没退完台不出击
 		
 		
-		if(ret==1) ret=2;
+		if(ret==1) ret=2;//暂时不跳转到台下模式
 		
-    if(ret==1 ) tuitai_step(1);  //如果退台就中断退台
+    if(ret==1 ) 
+    {
+        tuitai_step(1);  //如果退台就中断退台
+        jianyi_tuitai=0; //掉台减益方块处理复位
+    }
 		
 		
 		
@@ -438,18 +474,32 @@ uint8_t xunluo_deal(void)
 uint8_t chuji_deal(void)
 {
     uint8_t ret=3;
-
-    if(miaozhun_step(0))            //如果瞄准到，直行
+    uint8_t temp=0;
+    temp=miaozhun_step(0);
+    if(temp)            //如果瞄准到，直行
     {
-        motor_set_duty(50,50);
+        if(last_miaozhun_ok==1)//不是前面刚刚出现物体
+        {
+            motor_set_duty(50,50);
+
+        }
+        else
+        {
+            if(is_jianyi())  //前方突然出现东西看是不是减益方块
+            {
+                ret=2; //进入巡逻强制退台处理
+                jianyi_tuitai=1;//进入巡逻强制退台处理
+            }
+        }
     }
+    last_miaozhun_ok=temp;  //更新瞄准完成标志位
 	  
 		motor_run();
 		
     ret=is_goto_state(chuji);
     if(ret==2 || ret==1) miaozhun_step(1);  //中断瞄准
 		
-		if(ret==1) ret=3;
+		if(ret==1) ret=3;//暂时不跳转到台下状态
 		
     return ret;
 

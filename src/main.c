@@ -444,9 +444,9 @@ int main(void)
 		
 		
 		
-		
- 		BT_SendADCData();
-	
+		//UP_Bluetooth_Putc('a');
+ 		//BT_SendADCData();
+      // UP_USR232_Putc('a');
  		//UP_delay_ms(100);
  	}
  }

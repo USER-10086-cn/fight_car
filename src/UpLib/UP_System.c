@@ -10,7 +10,7 @@
 #include "STM32Lib\\stm32f10x.h"
 #include "UP_System.h"
 #include "UP_NVIC.h"
-
+#include "signal.h"
 /*************************************************
   函数名称: UP_System_Init   
   函数功能: 初始化系统函数
@@ -22,9 +22,12 @@
   函数返回值: 无
   其它说明:无        
 *************************************************/
+
+
+
 void UP_System_Init(void)
 {
-	//UP_EnableUSR232IT(115200);
+	UP_EnableUSR232IT(115200);
 	SystemInit();							//初始化库
 	UP_NVIC_Configuration();	//初始化中断
 	UP_Key_Init();						//初始化按键	
@@ -36,6 +39,8 @@ void UP_System_Init(void)
 	UP_Exti_Init();						//初始化外部中断
 	UP_Timer_Init();					//初始化定时器
 	UP_Bluetooth_Init();			//初始化蓝牙模块
+	UP_Bluetooth_EnableIT();
+	UP_SetBluetoothHadler(Bluetooth_Rx_CallBack);
 	
 }
 
