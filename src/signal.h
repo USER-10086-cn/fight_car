@@ -8,7 +8,7 @@ uint8_t is_hangon(void);        // 判断是否挂住
 uint8_t is_off_leitai(void);    // 判断是否掉下擂台
 uint8_t is_enemy(void);         // 判断是否有敌人
 uint8_t is_edge(void);          // 判断是否到边沿
-uint8_t is_edge_behind(void)    //判断是否后面到边沿
+uint8_t is_edge_behind(void);    //判断是否后面到边沿
 uint8_t is_to_leitai(void);     // 判断台下是否对准擂台
 uint8_t is_accident(void);      // 判断是否对准敌人
 uint8_t is_on_leitai(void);     // 判断是否在台上

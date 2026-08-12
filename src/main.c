@@ -417,10 +417,11 @@ static status_t handle_state3(fsm_t *self, event_t event)
 #include "shangweiji.h"
 #include "run.h"
 #include "fighting.h"
-
+#include "UP_Globle.h"
 int main(void)
  {
-	 static uint8_t state_now=3;
+	 static uint8_t state_now=0;
+	 static uint32_t nxt=0;
  	UP_System_Init();
  	while(1)
  	{
@@ -442,9 +443,29 @@ int main(void)
 				break;
 		}
 		
+		UP_LCD_ShowHex(4,0,state_now);
 		
 		
-		//UP_Bluetooth_Putc('a');
+		if(g_SysTickTimer>nxt)
+		{
+			switch(state_now)
+			{
+				case 1:
+					UP_Bluetooth_Putc('b');
+					break;
+				case 2:
+					UP_Bluetooth_Putc('c');
+					break;
+				case 3:
+					UP_Bluetooth_Putc('d');
+					break;
+				case 0:
+					UP_Bluetooth_Putc('a');
+					break;
+			}
+			nxt=g_SysTickTimer+500;
+		}
+		
  		//BT_SendADCData();
       // UP_USR232_Putc('a');
  		//UP_delay_ms(100);

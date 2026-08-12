@@ -2,6 +2,7 @@
 #include "UP_Globle.h"
 #include "signal.h"
 #include "UP_CDS5500.h"
+#include "UP_LCD.h"
 
 #define MOTO_ID_LEFT   1    // 左电机 ID
 #define MOTO_ID_RIGHT  2    // 右电机 ID
@@ -311,7 +312,7 @@ uint8_t miaozhun_step(uint8_t is_exti) {
         case 3:        //345为在左边，离正前角度越大，k越大，旋转速度越大
         case 4:
         case 5:
-        k=1+(temp-2)*0.2;
+        k=0.6+(temp-2)*0.2;
         break;
         case 6:        //678与345逻辑相反
         case 7:
@@ -364,15 +365,17 @@ uint8_t shangtai_deal(void)
         motor_set_duty(-90,-90);
         temp_flag=2;
     }
-    else if(temp_flag==2 && is_hangon())           //挂住开始计时
+    //else if(temp_flag==2 && is_hangon())           //挂住开始计时
+    else if(temp_flag==2)           //挂住开始计时
     {
         
         temp_flag=3;
         t_start=g_SysTickTimer;
     }
-    else if(temp_flag==3 && TIMEOUT(t_start, 200))
+    else if(temp_flag==3 && TIMEOUT(t_start, 1500))
     {
         ret=is_goto_state(shangtai);              //200ms判断跳转
+       
     }
     else if(temp_flag==4  && TIMEOUT(t_start, 2000))
     {
@@ -380,14 +383,16 @@ uint8_t shangtai_deal(void)
         temp_flag=1;                   //转向完成后复位
     }
 
-    if(ret==2)                    //如果上台就转向
+    if(ret==2 && temp_flag==3)                    //如果上台就转向
     {
         temp_flag=4;
         motor_set_duty(50,-50);
         t_start=g_SysTickTimer;
         ret=0;
     }
-
+    else if(ret==1 && temp_flag==3) temp_flag=1;
+    motor_run();
+    UP_LCD_ShowHex(5,1,temp_flag);
     return ret;
     
 }
@@ -405,12 +410,12 @@ uint8_t taixia_deal(void)
     {
         motor_set_duty(50,-50);
     }
-    else if(duizhun_step(0))         //如果对准再次确认
+    else if(temp_flag!=1 && duizhun_step(0))         //如果对准再次确认
     {
         ret=is_goto_state(taixia);
     }
 
-    if(ret==0)                      //对准就开始蓄力
+    if(ret==0 && temp_flag!=1)                      //对准就开始蓄力
     {
         t_start=g_SysTickTimer;
         temp_flag=1;
@@ -419,9 +424,10 @@ uint8_t taixia_deal(void)
     }
     else if(temp_flag==1 && TIMEOUT(t_start, 2000))
     {
-        ret=2;                      
+        ret=0;                      
         temp_flag=0;                   //蓄力完成后复位
     }
+    motor_run();
     return ret;
 
 }
@@ -454,7 +460,7 @@ uint8_t xunluo_deal(void)
     if(ret==3 && temp_flag==1) ret=2;  //没退完台不出击
 		
 		
-		if(ret==1) ret=2;//暂时不跳转到台下模式
+		//if(ret==1) ret=2;//暂时不跳转到台下模式
 		
     if(ret==1 ) 
     {
@@ -481,25 +487,32 @@ uint8_t chuji_deal(void)
         if(last_miaozhun_ok==1)//不是前面刚刚出现物体
         {
             motor_set_duty(50,50);
-
+             motor_run();
         }
         else
         {
-            if(is_jianyi())  //前方突然出现东西看是不是减益方块
-            {
-                ret=2; //进入巡逻强制退台处理
-                jianyi_tuitai=1;//进入巡逻强制退台处理
-            }
+            motor_set_duty(50,50);
+
+             motor_run();
+//            if(is_jianyi())  //前方突然出现东西看是不是减益方块
+//            {
+//                ret=2; //进入巡逻强制退台处理
+//                jianyi_tuitai=1;//进入巡逻强制退台处理
+//            }
         }
+    }
+    else
+    {
+        motor_run();
     }
     last_miaozhun_ok=temp;  //更新瞄准完成标志位
 	  
-		motor_run();
+		
 		
     ret=is_goto_state(chuji);
     if(ret==2 || ret==1) miaozhun_step(1);  //中断瞄准
 		
-		if(ret==1) ret=3;//暂时不跳转到台下状态
+		//if(ret==1) ret=3;//暂时不跳转到台下状态
 		
     return ret;
 

@@ -634,14 +634,14 @@
               <FilePath>..\src\run.h</FilePath>
             </File>
             <File>
-              <FileName>signal.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\signal.c</FilePath>
-            </File>
-            <File>
               <FileName>signal.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\src\signal.h</FilePath>
+            </File>
+            <File>
+              <FileName>signal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\signal.c</FilePath>
             </File>
             <File>
               <FileName>fighting.c</FileName>

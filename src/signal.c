@@ -6,22 +6,34 @@
 #define TIMEOUT(start, ms)  ((g_SysTickTimer - (start)) >= (ms))
 
 
-#define handon 1600  //手部接近最小值
+#define handon 2000  //手部接近最小值
 #define leitai 450  //台上最小值
 #define taixia 250  //台下最大值
 #define enemy 400  //敌人在范围内的最小值（80cm）
 #define wuti 800   //敌人在范围内的最小值 （150cm）
 #define edge 1500    //光电到边沿阈值
+#define weiqiang 500    //前面测距对准围墙的最小值
+#define chazhi 400    //对准围墙时左前右前的差值不能大于该值
+#define kong 500    //后面150cm测距什么都没有的最大值
 static uint8_t jianyi_flag=0;
+
+
+
+static uint8_t temp_hangon_flag=0;
+
 
 void Bluetooth_Rx_CallBack(u32 dat)//接收树莓派返回结果
 {
     UP_LCD_ClearScreen();
     UP_LCD_ShowInt(0,2,g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD]);
     UP_LCD_ShowHex(1,1,dat);
-	if(dat=='0x01')
+	if(dat==0x01)
 	{
 		jianyi_flag=1;
+	}
+	if(dat==0x05)  //临时，比赛时不用
+	{
+		temp_hangon_flag=1;
 	}
 }
 
@@ -30,7 +42,7 @@ uint8_t is_jianyi(void)
 {
 	uint8_t ret = 0;
     UP_Bluetooth_Putc('a');  //先发a告诉树莓派开始，阻塞等待100ms取结果
-    UP_delay_ms(100);  //阻塞等待100ms取结果，注意：时间控制不好容易晚复位jianyi_flag
+    UP_delay_ms(10);  //阻塞等待100ms取结果，注意：时间控制不好容易晚复位jianyi_flag
     ret=jianyi_flag;
     jianyi_flag=0;
     return ret;
@@ -42,7 +54,10 @@ uint8_t is_jianyi(void)
 //判断是否挂住函数，是则返回1，否则返回0
 uint8_t is_hangon(void)
 {
-    return 0;
+	uint8_t temp=0;
+	temp=temp_hangon_flag;
+	temp_hangon_flag=0;
+    return temp;
 }
 //判断是否掉下函数
 uint8_t is_off_leitai(void)
@@ -76,7 +91,9 @@ uint8_t is_edge_behind(void)
 //判断在台下是否对准擂台函数
 uint8_t is_to_leitai(void)
 {
-    return (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD]>enemy && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_BACKWARD]<enemy);
+    return (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD]>weiqiang && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_BACKWARD]<kong 
+            && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L1]-g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R1]<chazhi
+            && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L1]-g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R1]>chazhi*-1);
 }
 
 uint8_t is_jiaoluo(void)
@@ -92,12 +109,12 @@ uint8_t is_accident(void)
 //判断是否在台上函数
 uint8_t is_on_leitai(void)
 {
-    return (g_Fight_HuiduFiltered[FIGHT_HUIDU_BACKWARD1] > leitai && g_Fight_HuiduFiltered[FIGHT_HUIDU_BACKWARD2] >leitai);
+    return (g_Fight_HuiduFiltered[FIGHT_HUIDU_FORWARD1] > leitai && g_Fight_HuiduFiltered[FIGHT_HUIDU_FORWARD2] >leitai);
 }
 //判断是否有手放在左边
 uint8_t is_hand(void)
 {
-    return (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L2]>handon);
+    return (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L2]>handon && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R2]);
 }
 
 //判断一段时间内是否无敌人
