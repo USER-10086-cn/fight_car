@@ -16,10 +16,14 @@
 #define chazhi 400    //对准围墙时左前右前的差值不能大于该值
 #define kong 500    //后面150cm测距什么都没有的最大值
 static uint8_t jianyi_flag=0;
+static uint8_t zengyiyi_flag=0;
 
+// 读取红外 forward1（原灰度后 1 的位置）
+#define fwd1 g_Fight_HuiduFiltered[FIGHT_HUIDU_BACKWARD2] 
 
+// 读取红外 forward2（原灰度后 2 的位置）
+#define fwd2 g_Fight_HuiduFiltered[FIGHT_HUIDU_BACKWARD1] 
 
-static uint8_t temp_hangon_flag=0;
 
 
 void Bluetooth_Rx_CallBack(u32 dat)//接收树莓派返回结果
@@ -31,9 +35,9 @@ void Bluetooth_Rx_CallBack(u32 dat)//接收树莓派返回结果
 	{
 		jianyi_flag=1;
 	}
-	if(dat==0x05)  //临时，比赛时不用
+    else if(dat==0x02)
 	{
-		temp_hangon_flag=1;
+		zengyiyi_flag=1;
 	}
 }
 
@@ -49,15 +53,21 @@ uint8_t is_jianyi(void)
 }
 
 
+uint8_t is_zengyi(void)
+{
+	uint8_t ret = 0;
+    ret=zengyiyi_flag;
+    zengyiyi_flag=0;
+    return ret;
+}
+
 
 
 //判断是否挂住函数，是则返回1，否则返回0
 uint8_t is_hangon(void)
 {
-	uint8_t temp=0;
-	temp=temp_hangon_flag;
-	temp_hangon_flag=0;
-    return temp;
+	
+    return 0;
 }
 //判断是否掉下函数
 uint8_t is_off_leitai(void)
@@ -68,6 +78,7 @@ uint8_t is_off_leitai(void)
 uint8_t is_enemy(void)
 {
     return (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD]>enemy || g_Fight_HongwaiFiltered[FIGHT_HONGWAI_BACKWARD]>enemy
+        || fwd1>enemy || fwd2>enemy
     || g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L1]>wuti || g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L2]>wuti
     || g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L3]>wuti || g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R1]>wuti
     || g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R2]>wuti || g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R3]>wuti);
@@ -114,7 +125,7 @@ uint8_t is_on_leitai(void)
 //判断是否有手放在左边
 uint8_t is_hand(void)
 {
-    return (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L2]>handon && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R2]);
+    return (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_L2]>handon && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_R2]>handon);
 }
 
 //判断一段时间内是否无敌人
@@ -154,8 +165,16 @@ uint8_t which_to_enemy(void)
 
     // 依次检查8个传感器
     if (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD] > enemy && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD] > max_val) {
-        max_val = g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD]*2;  //前面权重大
+        max_val = g_Fight_HongwaiFiltered[FIGHT_HONGWAI_FORWARD]*2.5;  //前面权重大
         max_idx = 1;
+    }
+    if (fwd1 > enemy && fwd1 > max_val) {
+        max_val = fwd1*2;
+        max_idx = 9;
+    }
+    if (fwd2 > enemy && fwd2 > max_val) {
+        max_val = fwd2*2;
+        max_idx = 10;
     }
     if (g_Fight_HongwaiFiltered[FIGHT_HONGWAI_BACKWARD] > enemy && g_Fight_HongwaiFiltered[FIGHT_HONGWAI_BACKWARD] > max_val) {
         max_val = g_Fight_HongwaiFiltered[FIGHT_HONGWAI_BACKWARD];

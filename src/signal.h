@@ -17,5 +17,6 @@ uint8_t is_no_enemy(void);      // 判断是否一段时间无敌人
 uint8_t which_to_enemy(void);   // 判断哪个传感器对准敌人
 uint8_t is_jiaoluo(void);       // 判断是否处于台下角落处
 uint8_t is_jianyi(void);        //判断是不是减益方块（有阻塞等待结果）
+uint8_t is_zengyi(void);
 void Bluetooth_Rx_CallBack(u32 dat);
 #endif // SIGNAL_H

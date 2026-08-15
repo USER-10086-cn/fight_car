@@ -420,7 +420,7 @@ static status_t handle_state3(fsm_t *self, event_t event)
 #include "UP_Globle.h"
 int main(void)
  {
-	 static uint8_t state_now=0;
+	 static uint8_t state_now=2;
 	 static uint32_t nxt=0;
  	UP_System_Init();
  	while(1)

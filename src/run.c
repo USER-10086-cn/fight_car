@@ -3,7 +3,7 @@
 #include "signal.h"
 #include "UP_CDS5500.h"
 #include "UP_LCD.h"
-
+#include "UP_Bluetooth.h"
 #define MOTO_ID_LEFT   1    // 左电机 ID
 #define MOTO_ID_RIGHT  2    // 右电机 ID
 
@@ -312,29 +312,35 @@ uint8_t miaozhun_step(uint8_t is_exti) {
         case 3:        //345为在左边，离正前角度越大，k越大，旋转速度越大
         case 4:
         case 5:
-        k=0.6+(temp-2)*0.2;
+        k=0.8+(temp-2)*0.2;
         break;
         case 6:        //678与345逻辑相反
         case 7:
         case 8:
-        k=-1-(temp-5)*0.2;
+        k=-0.8-(temp-5)*0.2;
+       
+
         break;
         default:
         if(dir)
         {
 					k=dir==1?1:-1;    //当所有方向都没有时，根据记录的上一时刻的方向慢速转
         }
+        if(temp==9 || temp==10)  k=0;
         break;
 
     }
     if(k!=0 && miaozhun_ok!=1)      //记录这一时刻的方向为下一时刻（没检测到目标）使用，设置旋转速度
     {
         dir=k>0?1:2;
-        motor_set_duty(-40*k, 40*k);
+        motor_set_duty(-50*k, 50*k);
     }
+    
     else
     {
-			motor_set_duty(0, 0);      //瞄准到了，不转了，且要返回1了
+        if(temp==9) motor_set_duty(50, 70);
+        else if(temp==10) motor_set_duty(70, 50);
+        else motor_set_duty(0, 0);
     }
 
     if(is_exti==1)               //如果在外部终止瞄准则复位
@@ -460,12 +466,16 @@ uint8_t xunluo_deal(void)
     if(ret==3 && temp_flag==1) ret=2;  //没退完台不出击
 		
 		
-		//if(ret==1) ret=2;//暂时不跳转到台下模式
+		if(ret==1) ret=2;//暂时不跳转到台下模式
 		
     if(ret==1 ) 
     {
         tuitai_step(1);  //如果退台就中断退台
         jianyi_tuitai=0; //掉台减益方块处理复位
+    }
+    if(ret==3)
+    {
+        UP_Bluetooth_Putc('i');	
     }
 		
 		
@@ -481,38 +491,59 @@ uint8_t chuji_deal(void)
 {
     uint8_t ret=3;
     uint8_t temp=0;
+    static uint8_t zengyi_dealing=0;
     temp=miaozhun_step(0);
     if(temp)            //如果瞄准到，直行
     {
         if(last_miaozhun_ok==1)//不是前面刚刚出现物体
         {
-            motor_set_duty(50,50);
-             motor_run();
+            if(zengyi_dealing==1)
+            {
+                 motor_set_duty(40,40);
+                 motor_run();
+            }
+            else
+            {
+                motor_set_duty(60,60);
+                motor_run();
+            }
+            
+             
         }
         else
         {
-            motor_set_duty(50,50);
+           
 
              motor_run();
-//            if(is_jianyi())  //前方突然出现东西看是不是减益方块
-//            {
-//                ret=2; //进入巡逻强制退台处理
-//                jianyi_tuitai=1;//进入巡逻强制退台处理
-//            }
+           if(is_jianyi())  //前方突然出现东西看是不是减益方块
+           {
+               ret=2; //进入巡逻强制退台处理
+               jianyi_tuitai=1;//进入巡逻强制退台处理
+           }
+           else if(is_zengyi())
+           {
+                zengyi_dealing=1;
+           }
+           
         }
     }
     else
     {
         motor_run();
+        zengyi_dealing=0;
     }
     last_miaozhun_ok=temp;  //更新瞄准完成标志位
 	  
 		
-		
-    ret=is_goto_state(chuji);
-    if(ret==2 || ret==1) miaozhun_step(1);  //中断瞄准
-		
-		//if(ret==1) ret=3;//暂时不跳转到台下状态
+	if(ret!=2)	
+        ret=is_goto_state(chuji);
+    if(ret==2 || ret==1) 
+    {
+        zengyi_dealing=0;
+        miaozhun_step(1);  //中断瞄准
+        UP_Bluetooth_Putc('o');	
+    }
+		if(ret==1) ret=3;//暂时不跳转到台下状态
 		
     return ret;
 
